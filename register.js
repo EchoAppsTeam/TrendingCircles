@@ -1,6 +1,5 @@
-// TODO: change script url to production one
 StreamSentiment.VisualisationRegistry.registerCustom("circles", {
-	"script": "http://mt.dbragin.ul.js-kit.com/app.js",
+	"script": "//cdn.echoenabled.com/apps/echo/trending-circles/v1.0/app.js",
 	"name": "Circles",
 	"clazz": "Echo.Apps.TrendingCircles",
 	"items": [{
