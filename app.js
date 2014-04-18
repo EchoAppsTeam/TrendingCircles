@@ -4,9 +4,6 @@
 var circles = Echo.App.manifest("Echo.Apps.TrendingCircles");
 
 circles.config = {
-	"animateMovements": true,
-	"animateTimeout": 700,
-	"sortAttr": "name",
 	"item": {}
 };
 
