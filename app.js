@@ -21,11 +21,8 @@ circles.templates.main =
 		'<div class="{class:collection}"></div>' + 
 	'</div>';
 
-circles.events = {
-	"Echo.Control.onDestroy": function(topic, args) {
-		this.collectionView.disconnect();
-	}
-};
+circles.templates.item =
+	'<div class="{class:item}"></div>';
 
 circles.renderers.header = function(element) {
 	if (this.config.get('simulation')) {
@@ -34,9 +31,8 @@ circles.renderers.header = function(element) {
 	return element;
 };
 
-
 circles.methods.initItem = function(trend) {
-	var element = $(this.substitute({"template": '<div class="{class:item}"></div>', "data": {}}));
+	var element = $(this.substitute({"template": circles.templates.item}));
 	return new Echo.Apps.TrendingCircles.Item($.extend({
 		"appkey": this.config.get('appkey'),
 		"target": element,
@@ -44,6 +40,10 @@ circles.methods.initItem = function(trend) {
 		"parent": this.config.getAsHash(),
 		"request": this.collectionView.request
 	}, this.config.get("item")));
+};
+
+circles.destroy = function() {
+	this.collectionView.disconnect();
 };
 
 circles.css =
@@ -56,7 +56,7 @@ Echo.App.create(circles);
 (function($) {
 "use strict";
 
-var item = Echo.Control.manifest("Echo.Apps.TrendingCircles.Item");
+var item = Echo.App.manifest("Echo.Apps.TrendingCircles.Item");
 
 item.config = {
 	"avatarSize": 48,
@@ -65,29 +65,38 @@ item.config = {
 	"backgroundColor": "#91d7fc",
 	"flashColor": "#65c0f0",
 	"clockwise": false,
-	"fps": 60
+	"zeroAngle": -90, // in degrees
+	"fps": 60,
+	"animationSteps": 60
 };
 
 item.config.normalizer = {
-	"borderWidthh": function(val) {
+	"borderWidth": function(val) {
 		return val > this.get("avatarSize") * 0.5
 			 ? this.get("avatarSize") * 0.5 : val;
 	}
 };
 
+item.vars = {
+	"r": 0, // circle radius
+	"d": 0, // circle diametr
+	"x": 0, // x coordinate of a circle
+	"y": 0, // y coordinate of a circle
+	"arcR": 0, // radius of an arc
+	"zeroAngle": 0 // angle to start indication
+};
+
 item.init = function() {
 	var self = this;
 
+	// calculate and store some values to prevent recalculating during the animation
 	var r = (this.config.get("avatarSize") + 2 * this.config.get("borderWidth")) * 0.5;
 	$.map(["r", "x", "y"], function(v) { self.set(v, r); });
+	this.set("d", r * 2);
+	this.set("arcR", this.r - this.config.get("borderWidth") * 0.5);
+	this.set("zeroAngle", this._toRadians(this.config.get("zeroAngle")));
+
 	this.render();
-
-	this.set("context", this.view.get("value").get(0).getContext("2d"));
-
-	var angle = this._toRadians(this._toAngle(this.get("data.weight")));
-	this._drawArc(this._toRadians(-90), angle, this.config.get("backgroundColor"), !this.config.get("clockwise"));
-	this._drawArc(this._toRadians(-90), angle, this.config.get("foregroundColor"), this.config.get("clockwise"));
-
 	this.ready();
 };
 
@@ -99,67 +108,24 @@ item.templates.main =
 
 item.templates.title = '{data:name} {data:weight} %';
 
-var requestAnimationFrame = (function(){
-	return window.requestAnimationFrame       ||
-		window.webkitRequestAnimationFrame ||
-		window.mozRequestAnimationFrame    ||
-		function (callback) {
-			window.setTimeout(callback, 1000 / this.config.get("fps"));
-		};
-})();
-
-item.methods.update = function(data) {
-	this.set("data", data);
-	if (data.weight === data.previousWeight) {
-		return;
-	}
-	var self = this, context = this.get("context");
-
-	var startAngle = this._toRadians(this._toAngle(data.previousWeight));
-	var endAngle = this._toRadians(this._toAngle(data.weight));
-	var zeroAngle = this._toRadians(-90);
-
-	var stepAngle = (endAngle - startAngle) / this.config.get("fps");
-	
-	var currentAngle = startAngle;
-
-	var stop = function(angle) {
-		return stepAngle < 0 && angle < endAngle ||
-			stepAngle > 0 && angle > endAngle;
-	};
-
-	(function animationLoop() {
-
-		context.clearRect(0, 0, self.r * 2, self.r * 2);
-		if (stop(currentAngle)) {
-			self._drawArc(zeroAngle, currentAngle, self.config.get("foregroundColor"), self.config.get("clockwise"));
-			self._drawArc(zeroAngle, currentAngle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
-			return;
-		}
-
-		self._drawArc(zeroAngle, currentAngle, self.config.get("flashColor"), self.config.get("clockwise"));
-		self._drawArc(zeroAngle, currentAngle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
-
-		currentAngle += stepAngle;
-		requestAnimationFrame(animationLoop);
-	})();
-
-	this.view.get("avatar").attr(
-		"title",
-		this.substitute({"template": item.templates.title})
-	);
-};
-
 item.renderers.value = function(element) {
-	return element
-		.attr("width", 2 * this.r)
-		.attr("height", 2 * this.r);
+	var self = this;
+
+	$.map(["height", "width"], function(key) {
+		element.attr(key, self.d);
+	});
+
+	this.set("context", element.get(0).getContext("2d"));
+	var angle = this._toRadians(this._toAngle(this.get("data.weight")));
+	this._drawArc(this.zeroAngle, angle, this.config.get("backgroundColor"), !this.config.get("clockwise"));
+	this._drawArc(this.zeroAngle, angle, this.config.get("foregroundColor"), this.config.get("clockwise"));
+
+	return element;
 };
 
 item.renderers.avatar = function(element) {
 	var padding = this.config.get("borderWidth");
 	var size = this.config.get("avatarSize");
-
 	return this._placeAvatar({
                 "target": element,
                 "avatar": this.get("data.avatar", ""),
@@ -175,10 +141,57 @@ item.renderers.avatar = function(element) {
 	);
 };
 
+var requestAnimationFrame = (function(){
+	return window.requestAnimationFrame       ||
+		window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame    ||
+		function (callback) {
+			window.setTimeout(callback, 1000 / this.config.get("fps"));
+		};
+})();
+
+item.methods.update = function(data) {
+	this.set("data", data);
+	if (data.weight === data.previousWeight) {
+		return;
+	}
+
+	var self = this, context = this.get("context");
+	var startAngle = this._toRadians(this._toAngle(data.previousWeight));
+	var endAngle = this._toRadians(this._toAngle(data.weight));
+	var stepAngle = (endAngle - startAngle) / this.config.get("animationSteps");
+
+	var stop = function(angle) {
+		return stepAngle < 0 && angle < endAngle ||
+			stepAngle > 0 && angle > endAngle;
+	};
+
+	var angle = startAngle;
+	(function animationLoop() {
+		context.clearRect(0, 0, self.d, self.d);
+		if (stop(angle)) {
+			self._drawArc(self.zeroAngle, angle, self.config.get("foregroundColor"), self.config.get("clockwise"));
+			self._drawArc(self.zeroAngle, angle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
+			return;
+		}
+
+		self._drawArc(self.zeroAngle, angle, self.config.get("flashColor"), self.config.get("clockwise"));
+		self._drawArc(self.zeroAngle, angle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
+
+		angle += stepAngle;
+		requestAnimationFrame(animationLoop);
+	})();
+
+	this.view.get("avatar").attr(
+		"title",
+		this.substitute({"template": item.templates.title})
+	);
+};
+
 item.methods._drawArc = function(startAngle, endAngle, color, clockwise) {
 	var context = this.get("context");
 	context.beginPath();
-	context.arc(this.x, this.y, this.r - this.config.get("borderWidth")/2, startAngle, endAngle, !clockwise);
+	context.arc(this.x, this.y, this.arcR, startAngle, endAngle, !clockwise);
 	context.strokeStyle = color;
 	context.lineWidth = this.config.get("borderWidth");
 	context.stroke();
@@ -187,7 +200,9 @@ item.methods._drawArc = function(startAngle, endAngle, color, clockwise) {
 
 item.methods._toAngle = function(weight) {
 	var value = weight * 3.6;
-	return this.config.get("clockwise") ? value - 90 : 270 - value;
+	return this.config.get("clockwise")
+		? value + this.config.get("zeroAngle")
+		: 360 + this.config.get("zeroAngle") - value;
 };
 
 item.methods._toRadians = function(degrees) {
@@ -195,37 +210,37 @@ item.methods._toRadians = function(degrees) {
 };
 
 item.methods._placeAvatar = function(args) {
-        args = args || {};
-        var element = $(args.target);
-        if (!element.length) return;
-        element
-                .addClass("echo-avatar")
-                .css({
-                        "background-image": $.map(["avatar", "defaultAvatar"], function(key) {
-                                return args[key]
-                                        ? "url('" + args[key] + "')"
-                                        : null;
-                        }).join(", ")
-                });
+	args = args || {};
+	var element = args.target;
+	if (!element.length) return;
+
+	var self = this;
+	var composeCSS = function(keys, value) {
+		return $.map(keys, function(key) {
+			return args[key]
+				? self.substitute({
+					"template": value,
+					"data": {"value": args[key]}
+				}) : null;
+		}).join(", ");
+	};
+
+	var keys = ["avatar", "defaultAvatar"];
+	element.css({"background-image": composeCSS(keys, "url('{data:value}')")});
 
 	var isIE8 = document.all && document.querySelector && !document.addEventListener;
-        if (isIE8) {
-                element.css({
-                        "filter": $.map(["defaultAvatar", "avatar"], function(key) {
-                                return args[key]
-                                        ? "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='" + args[key] + "', sizingMethod='scale')"
-                                        : null;
-                        }).join(", ")
-                });
-        }
-        return element;
+	if (isIE8) {
+		element.css({
+			"filter": composeCSS(keys.reverse(), "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='{data:value}', sizingMethod='scale')")
+		});
+	}
+	return element;
 };
 
 item.css = 
 	'.{class:container} { position: relative; }' +
-	'.{class:avatar} { position: absolute; display: inline-block; }' +
-	'.echo-avatar { background-size: cover; background-position: center; border-radius: 50%; }';
+	'.{class:avatar} { position: absolute; display: inline-block; background-size: cover; background-position: center; border-radius: 50%; }';
 
-Echo.Control.create(item);
+Echo.App.create(item);
 
 })(Echo.jQuery);

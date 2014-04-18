@@ -1,3 +1,4 @@
+// TODO: change script url to production one
 StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 	"script": "http://mt.dbragin.ul.js-kit.com/app.js",
 	"name": "Circles",
@@ -41,7 +42,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": 48,
 			"config": {
 				"title": "Avatar Size",
-				"desc": "Specifies the avatar size"
+				"desc": "Specifies the avatar size."
 			}
 		}, {
 			"component": "Input",
@@ -50,7 +51,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": 10,
 			"config": {
 				"title": "Border Width",
-				"desc": "Specifies the border width"
+				"desc": "Specifies the border width of the indication circle."
 			}
 		}, {
 			"component": "Input",
@@ -59,7 +60,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": "#91d7fc",
 			"config": {
 				"title": "Background Color",
-				"desc": "Specifies the background color"
+				"desc": "Specifies the background color of the indication circle. This parameter must have a hex color value."
 			}
 		}, {
 			"component": "Input",
@@ -68,7 +69,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": "#54b0e1",
 			"config": {
 				"title": "Foreground Color",
-				"desc": "Specifies the foreground color"
+				"desc": "Specifies the color of the indication. This parameter must have a hex color value."
 			}
 		}, {
 			"component": "Input",
@@ -77,7 +78,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": "#65c0f0",
 			"config": {
 				"title": "Flash Color",
-				"desc": "Specifies the flash color"
+				"desc": "Specifies the flash color when live updates come to the item. This parameter must have a hex color value."
 			}
 		}, {
 			"component": "Checkbox",
@@ -86,7 +87,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": false,
 			"config": {
 				"title": "Clockwise",
-				"desc": "If enabled the indication goes clockwise"
+				"desc": "If enabled the indication goes in a clockwise direction"
 			}
 		}]
 	}, {
