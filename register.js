@@ -132,7 +132,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"type": "string",
 			"name": "sortOrder",
 			"default": "asc",
-        		"config": {
+			"config": {
 				"title": "Sort order",
 				"desc": "Defines the direction in which the sort attribute is applied. Can be either asc (ascending) or desc (descending).\n",
 				"options": [{

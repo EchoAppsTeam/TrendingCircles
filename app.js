@@ -124,10 +124,10 @@ item.renderers.avatar = function(element) {
 	var padding = this.config.get("borderWidth");
 	var size = this.config.get("avatarSize");
 	return this._placeAvatar({
-                "target": element,
-                "avatar": this.get("data.avatar", ""),
-                "defaultAvatar": this.config.get("defaultAvatar")
-        }).css({
+		"target": element,
+		"avatar": this.get("data.avatar", ""),
+		"defaultAvatar": this.config.get("defaultAvatar")
+	}).css({
 		"top": padding,
 		"left": padding,
 		"width": size,
