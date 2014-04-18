@@ -76,10 +76,10 @@ item.config.normalizer = {
 
 item.vars = {
 	"r": 0, // circle radius
-	"d": 0, // circle diametr
-	"x": 0, // x coordinate of a circle
-	"y": 0, // y coordinate of a circle
-	"arcR": 0, // radius of an arc
+	"d": 0, // circle diameter
+	"x": 0, // x coordinate of the circle center
+	"y": 0, // y coordinate of the circle center
+	"arcR": 0, // radius of the arc
 	"zeroAngle": 0 // angle to start indication
 };
 
@@ -93,6 +93,7 @@ item.init = function() {
 	this.set("arcR", this.r - this.config.get("borderWidth") * 0.5);
 	this.set("zeroAngle", this._toRadians(this.config.get("zeroAngle")));
 
+	this.set("requestAnimationFrame", this._getRequestAnimationFrame());
 	this.render();
 	this.ready();
 };
@@ -138,20 +139,9 @@ item.renderers.avatar = function(element) {
 	);
 };
 
-var requestAnimationFrame = (function(){
-	return window.requestAnimationFrame       ||
-		window.webkitRequestAnimationFrame ||
-		window.mozRequestAnimationFrame    ||
-		function (callback) {
-			window.setTimeout(callback, 1000 / this.config.get("fps"));
-		};
-})();
-
 item.methods.update = function(data) {
 	this.set("data", data);
-	if (data.weight === data.previousWeight) {
-		return;
-	}
+	if (data.weight === data.previousWeight) return;
 
 	var self = this, context = this.get("context");
 	var startAngle = this._toRadians(this._toAngle(data.previousWeight));
@@ -176,7 +166,7 @@ item.methods.update = function(data) {
 		self._drawArc(self.zeroAngle, angle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
 
 		angle += stepAngle;
-		requestAnimationFrame(animationLoop);
+		self.requestAnimationFrame.call(window, animationLoop);
 	})();
 
 	this.view.get("avatar").attr(
@@ -204,6 +194,16 @@ item.methods._toAngle = function(weight) {
 
 item.methods._toRadians = function(degrees) {
 	return degrees * Math.PI / 180;
+};
+
+item.methods._getRequestAnimationFrame = function() {
+	var self = this;
+	return window.requestAnimationFrame ||
+		window.webkitRequestAnimationFrame ||
+		window.mozRequestAnimationFrame ||
+		function (callback) {
+			window.setTimeout(callback, 1000 / self.config.get("fps"));
+		};
 };
 
 item.methods._placeAvatar = function(args) {
