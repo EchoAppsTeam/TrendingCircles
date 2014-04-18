@@ -44,7 +44,7 @@ circles.destroy = function() {
 };
 
 circles.css =
-	'.{class:item} { display: inline-block; }';
+	'.{class:item} { display: inline-block; margin-right: 5px; }';
 
 Echo.App.create(circles);
 
