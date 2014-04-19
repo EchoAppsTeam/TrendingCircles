@@ -106,6 +106,13 @@ item.templates.main =
 
 item.templates.title = '{data:name} {data:weight} %';
 
+item.renderers.container = function(element) {
+	return element.attr(
+		"title",
+		this.substitute({"template": item.templates.title})
+	);
+};
+
 item.renderers.value = function(element) {
 	var self = this;
 	$.map(["height", "width"], function(key) {
@@ -125,25 +132,30 @@ item.renderers.value = function(element) {
 item.renderers.avatar = function(element) {
 	var padding = this.config.get("borderWidth");
 	var size = this.config.get("avatarSize");
+	// TODO: get rid of this substitution
+	var avatars =  {
+		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-chris-saad.jpg": "http://static.squarespace.com/static/52c5b81de4b0494603ede7e5/t/52cb35abe4b08720b0f45793/1389049259794/img-chris-saad.jpg",
+		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-kris-loux.jpg": "http://static.squarespace.com/static/52c5b81de4b0494603ede7e5/t/52c6510ee4b0438864636e19/1388728590845/img-kris-loux.jpg",
+		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-philippe-cailloux.jpg": "https://pbs.twimg.com/profile_images/442034424352210944/l4gNFFG8_bigger.jpeg",
+		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-jason-hoch.jpg": "https://pbs.twimg.com/profile_images/2794072215/dd0cd0ae4701ce0433196b7d17c848f4_bigger.png"
+	};
+
 	return this._placeAvatar({
 		"target": element,
-		"avatar": this.get("data.avatar", ""),
+		"avatar": avatars[this.get("data.avatar")] || this.get("data.avatar"),
 		"defaultAvatar": this.config.get("defaultAvatar")
 	}).css({
 		"top": padding,
 		"left": padding,
 		"width": size,
 		"height": size
-	}).attr(
-		"title",
-		this.substitute({"template": item.templates.title})
-	);
+	});
 };
 
 item.methods.update = function(data) {
 	this.set("data", data);
 	this._animate();
-	this.view.get("avatar").attr(
+	this.view.get("container").attr(
 		"title",
 		this.substitute({"template": item.templates.title})
 	);
