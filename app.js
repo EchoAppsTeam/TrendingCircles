@@ -108,15 +108,16 @@ item.templates.title = '{data:name} {data:weight} %';
 
 item.renderers.value = function(element) {
 	var self = this;
-
 	$.map(["height", "width"], function(key) {
 		element.attr(key, self.d);
 	});
-
 	this.set("context", element.get(0).getContext("2d"));
-	var angle = this._toRadians(this._toAngle(this.get("data.weight")));
+
+	var weight = this.get("data.previousWeight") ? this.get("data.previousWeight") : this.get("data.weight");
+	var angle = this._toRadians(this._toAngle(weight));
 	this._drawArc(this.zeroAngle, angle, this.config.get("backgroundColor"), !this.config.get("clockwise"));
 	this._drawArc(this.zeroAngle, angle, this.config.get("foregroundColor"), this.config.get("clockwise"));
+	this._animate();
 
 	return element;
 };
@@ -141,11 +142,21 @@ item.renderers.avatar = function(element) {
 
 item.methods.update = function(data) {
 	this.set("data", data);
-	if (data.weight === data.previousWeight) return;
+	this._animate();
+	this.view.get("avatar").attr(
+		"title",
+		this.substitute({"template": item.templates.title})
+	);
+};
+
+item.methods._animate = function() {
+	var weight = this.get("data.weight");
+	var previousWeight = this.get("data.previousWeight");
+	if (weight === previousWeight || typeof previousWeight === "undefined") return;
 
 	var self = this, context = this.get("context");
-	var startAngle = this._toRadians(this._toAngle(data.previousWeight));
-	var endAngle = this._toRadians(this._toAngle(data.weight));
+	var startAngle = this._toRadians(this._toAngle(previousWeight));
+	var endAngle = this._toRadians(this._toAngle(weight));
 	var stepAngle = (endAngle - startAngle) / this.config.get("animationSteps");
 
 	var stop = function(angle) {
@@ -168,11 +179,6 @@ item.methods.update = function(data) {
 		angle += stepAngle;
 		self.requestAnimationFrame.call(window, animationLoop);
 	})();
-
-	this.view.get("avatar").attr(
-		"title",
-		this.substitute({"template": item.templates.title})
-	);
 };
 
 item.methods._drawArc = function(startAngle, endAngle, color, clockwise) {
