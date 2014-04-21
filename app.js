@@ -120,8 +120,7 @@ item.renderers.value = function(element) {
 	});
 	this.set("context", element.get(0).getContext("2d"));
 
-	var weight = this.get("data.previousWeight") ? this.get("data.previousWeight") : this.get("data.weight");
-	var angle = this._toRadians(this._toAngle(weight));
+	var angle = this._toRadians(this._toAngle(this.get("data.previousWeight") || this.get("data.weight")));
 	this._drawArc(this.zeroAngle, angle, this.config.get("backgroundColor"), !this.config.get("clockwise"));
 	this._drawArc(this.zeroAngle, angle, this.config.get("foregroundColor"), this.config.get("clockwise"));
 	this._animate();
