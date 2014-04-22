@@ -123,6 +123,10 @@ item.templates.main =
 item.templates.title = '{data:name} {data:weight} %';
 
 item.renderers.container = function(element) {
+	var self = this;
+	$.map(["height", "width"], function(key) {
+		element.css(key, self.diameter);
+	});
 	return element.attr(
 		"title",
 		this.substitute({"template": item.templates.title})
@@ -134,8 +138,13 @@ item.renderers.value = function(element) {
 	$.map(["height", "width"], function(key) {
 		element.attr(key, self.diameter);
 	});
-	this.set("context", element.get(0).getContext("2d"));
 
+	var context = element.get(0).getContext && element.get(0).getContext("2d");
+	if (!context) {
+		return element;
+	}
+
+	this.set("context", context);
 	var angle = this._toRadians(this._toAngle(this.get("data.previousWeight") || this.get("data.weight")));
 	this._drawArc(this.startAngle, angle, this.colors["background"], !this.clockwise);
 	this._drawArc(this.startAngle, angle, this.colors["foreground"], this.clockwise);
@@ -178,9 +187,10 @@ item.methods.update = function(data) {
 item.methods._animate = function() {
 	var weight = this.get("data.weight");
 	var previousWeight = this.get("data.previousWeight");
-	if (weight === previousWeight || typeof previousWeight === "undefined") return;
+	var context = this.get("context");
+	if (weight === previousWeight || typeof previousWeight === "undefined" || !context) return;
 
-	var self = this, context = this.get("context");
+	var self = this;
 	var angleFrom = this._toRadians(this._toAngle(previousWeight));
 	var angleTo = this._toRadians(this._toAngle(weight));
 	var step = (angleTo - angleFrom) / this.config.get("animationSteps");
@@ -239,7 +249,7 @@ item.methods._getRequestAnimationFrame = function() {
 		};
 };
 
-var isIE8 = document.all && document.querySelector && !document.addEventListener;
+var IE8 = document.all && document.querySelector && !document.addEventListener;
 
 item.methods._placeAvatar = function(args) {
 	args = args || {};
@@ -260,12 +270,9 @@ item.methods._placeAvatar = function(args) {
 	var keys = ["avatar", "defaultAvatar"];
 	element.css({"background-image": composeCSS(keys, "url('{data:value}')")});
 
-	if (isIE8) {
-		element.css({
-			"filter": composeCSS(keys.reverse(), "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='{data:value}', sizingMethod='scale')")
-		});
-	}
-	return element;
+	return IE8 ? element.css({
+		"filter": composeCSS(keys.reverse(), "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='{data:value}', sizingMethod='scale')")
+	}) : element;
 };
 
 item.css = 
