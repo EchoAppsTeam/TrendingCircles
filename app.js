@@ -29,10 +29,9 @@ circles.renderers.header = function(element) {
 };
 
 circles.methods.initItem = function(trend) {
-	var element = $(this.substitute({"template": circles.templates.item}));
 	return new Echo.Apps.TrendingCircles.Item($.extend({
 		"appkey": this.config.get('appkey'),
-		"target": element,
+		"target": ("<div>"),
 		"data": trend,
 		"parent": this.config.getAsHash(),
 		"request": this.collectionView.request
@@ -44,7 +43,8 @@ circles.destroy = function() {
 };
 
 circles.css =
-	'.{class:item} { display: inline-dlock; }';
+	'.{class:collection} { font-size: 0.1px; }' +
+	'.{class:collection} > div { display: inline-block; font-size: 16px; margin: 3px; }';
 
 Echo.App.create(circles);
 
@@ -91,7 +91,6 @@ item.vars = {
 };
 
 item.init = function() {
-	var self = this;
 
 	// calculate and store some values to prevent recalculating during the animation
 	var arcWidth = this.config.get("borderWidth");
@@ -99,8 +98,10 @@ item.init = function() {
 	this.set("x", radius);
 	this.set("y", radius);
 	this.set("diameter", radius * 2);
-	this.set("arc.radius", radius - arcWidth * 0.5);
-	this.set("arc.width", arcWidth);
+	this.set("arc", {
+		"radius": radius - arcWidth * 0.5,
+		"width": arcWidth
+	});
 	this.set("startAngle", this._toRadians(this.config.get("startAngle")));
 	this.set("colors", {
 		"background": this.config.get("backgroundColor"),
