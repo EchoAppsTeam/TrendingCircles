@@ -69,11 +69,8 @@ item.config = {
 
 item.config.normalizer = {
 	"avatarSize": function(val) {
-		return val < 6 ? 6 : val;
-	},
-	"borderWidth": function(val) {
-		return val > this.get("avatarSize") * 0.5
-			 ? this.get("avatarSize") * 0.5 : val;
+		// do not allow too small avatars
+		return val < 16 ? 16 : val;
 	}
 };
 
@@ -91,10 +88,15 @@ item.vars = {
 };
 
 item.init = function() {
+	var borderWidth = this.config.get("borderWidth");
+	var avatarSize = this.config.get("avatarSize");
+
+	// normalize arc width to avoid too fat borders
+	var arcWidth = borderWidth < 1 || borderWidth > avatarSize * 0.5
+			? avatarSize * 0.5 : borderWidth;
 
 	// calculate and store some values to prevent recalculating during the animation
-	var arcWidth = this.config.get("borderWidth");
-	var radius = (this.config.get("avatarSize") + 2 * arcWidth) * 0.5;
+	var radius = (avatarSize + 2 * arcWidth) * 0.5;
 	this.set("x", radius);
 	this.set("y", radius);
 	this.set("diameter", radius * 2);
@@ -189,7 +191,9 @@ item.methods._animate = function() {
 	var weight = this.get("data.weight");
 	var previousWeight = this.get("data.previousWeight");
 	var context = this.get("context");
-	if (weight === previousWeight || typeof previousWeight === "undefined" || !context) return;
+	if (weight === previousWeight || typeof previousWeight === "undefined" || !context) {
+		return;
+	}
 
 	var self = this;
 	var angleFrom = this._toRadians(this._toAngle(previousWeight));
@@ -260,11 +264,10 @@ item.methods._placeAvatar = function(args) {
 	var self = this;
 	var composeCSS = function(keys, value) {
 		return $.map(keys, function(key) {
-			return args[key]
-				? self.substitute({
-					"template": value,
-					"data": {"value": args[key]}
-				}) : null;
+			return args[key] ? self.substitute({
+				"template": value,
+				"data": {"value": args[key]}
+			}) : undefined;
 		}).join(", ");
 	};
 
