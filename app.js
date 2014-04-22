@@ -4,13 +4,19 @@
 var circles = Echo.App.manifest("Echo.Apps.TrendingCircles");
 
 circles.config = {
-	"item": {}
+	"item": {},
+	"ssBaseURL": "//cdn.echoenabled.com/scripts/isv/streamsentiment/v3"
 };
 
 circles.init = function() {
 	this.collectionView = new StreamSentiment.TrendCollectionView(this);
 	this.collectionView.connect();
 };
+
+circles.dependencies = [{
+	"url": "{config:ssBaseURL}/trends.pack.js",
+	"loaded": function() { return !!window.StreamSentiment && !!window.StreamSentiment.TrendCollectionView; }
+}];
 
 circles.templates.main =
 	'<div class="{class:container}">' +
