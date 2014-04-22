@@ -15,7 +15,7 @@ circles.init = function() {
 
 circles.dependencies = [{
 	"url": "{config:ssBaseURL}/trends.pack.js",
-	"loaded": function() { return !!window.StreamSentiment && !!window.StreamSentiment.TrendCollectionView; }
+	"loaded": function() { return Echo.Utils.isComponentDefined("StreamSentiment.TrendCollectionView"); }
 }];
 
 circles.templates.main =
@@ -23,9 +23,6 @@ circles.templates.main =
 		'<div class="{class:header}"></div>' +
 		'<div class="{class:collection}"></div>' + 
 	'</div>';
-
-circles.templates.item =
-	'<div class="{class:item}"></div>';
 
 circles.renderers.header = function(element) {
 	if (this.config.get('simulation')) {
@@ -49,6 +46,9 @@ circles.destroy = function() {
 };
 
 circles.css =
+	// set different font sizes for collection and items to achieve
+	// a consistency in margins with enabled and disabled animation
+	// provided by $.mixitup (see http://mixitup-old.kunkalabs.com/#Faqs for details)
 	'.{class:collection} { font-size: 0.1px; }' +
 	'.{class:collection} > div { display: inline-block; font-size: 16px; margin: 3px; }';
 
@@ -76,7 +76,7 @@ item.config = {
 item.config.normalizer = {
 	"avatarSize": function(val) {
 		// do not allow too small avatars
-		return val < 16 ? 16 : val;
+		return Math.max(val, 16);
 	}
 };
 
@@ -102,7 +102,7 @@ item.init = function() {
 			? avatarSize * 0.5 : borderWidth;
 
 	// calculate and store some values to prevent recalculating during the animation
-	var radius = (avatarSize + 2 * arcWidth) * 0.5;
+	var radius = avatarSize / 2 + arcWidth;
 	this.set("x", radius);
 	this.set("y", radius);
 	this.set("diameter", radius * 2);
@@ -155,8 +155,8 @@ item.renderers.value = function(element) {
 
 	this.set("context", context);
 	var angle = this._toRadians(this._toAngle(this.get("data.previousWeight") || this.get("data.weight")));
-	this._drawArc(this.startAngle, angle, this.colors["background"], !this.clockwise);
-	this._drawArc(this.startAngle, angle, this.colors["foreground"], this.clockwise);
+	this._drawArc(this.startAngle, angle, this.colors.background, !this.clockwise);
+	this._drawArc(this.startAngle, angle, this.colors.foreground, this.clockwise);
 	this._animate();
 
 	return element;
@@ -177,8 +177,8 @@ item.renderers.avatar = function(element) {
 		"avatar": avatars[this.get("data.avatar")] || this.get("data.avatar"),
 		"defaultAvatar": this.config.get("defaultAvatar")
 	}).css({
-		"top": this.arc["width"],
-		"left": this.arc["width"],
+		"top": this.arc.width,
+		"left": this.arc.width,
 		"width": size,
 		"height": size
 	});
@@ -215,13 +215,13 @@ item.methods._animate = function() {
 	(function animationLoop() {
 		context.clearRect(0, 0, self.diameter, self.diameter);
 		if (stop(angle)) {
-			self._drawArc(self.startAngle, angle, self.colors["foreground"], self.clockwise);
-			self._drawArc(self.startAngle, angle, self.colors["background"], !self.clockwise);
+			self._drawArc(self.startAngle, angle, self.colors.foreground, self.clockwise);
+			self._drawArc(self.startAngle, angle, self.colors.background, !self.clockwise);
 			return;
 		}
 
-		self._drawArc(self.startAngle, angle, self.colors["flash"], self.clockwise);
-		self._drawArc(self.startAngle, angle, self.colors["background"], !self.clockwise);
+		self._drawArc(self.startAngle, angle, self.colors.flash, self.clockwise);
+		self._drawArc(self.startAngle, angle, self.colors.background, !self.clockwise);
 
 		angle += step;
 		self.requestAnimationFrame.call(window, animationLoop);
@@ -231,9 +231,9 @@ item.methods._animate = function() {
 item.methods._drawArc = function(angleFrom, angleTo, color, clockwise) {
 	var context = this.get("context");
 	context.beginPath();
-	context.arc(this.x, this.y, this.arc["radius"], angleFrom, angleTo, !clockwise);
+	context.arc(this.x, this.y, this.arc.radius, angleFrom, angleTo, !clockwise);
 	context.strokeStyle = color;
-	context.lineWidth = this.arc["width"];
+	context.lineWidth = this.arc.width;
 	context.stroke();
 	context.closePath();
 };
