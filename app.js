@@ -44,7 +44,7 @@ circles.destroy = function() {
 };
 
 circles.css =
-	'.{class:item} { display: inline-block; margin-right: 5px; }';
+	'.{class:item} { display: inline-dlock; }';
 
 Echo.App.create(circles);
 
@@ -62,12 +62,15 @@ item.config = {
 	"backgroundColor": "#91d7fc",
 	"flashColor": "#65c0f0",
 	"clockwise": false,
-	"zeroAngle": -90, // in degrees
+	"startAngle": -90, // in degrees
 	"fps": 60,
 	"animationSteps": 60
 };
 
 item.config.normalizer = {
+	"avatarSize": function(val) {
+		return val < 6 ? 6 : val;
+	},
 	"borderWidth": function(val) {
 		return val > this.get("avatarSize") * 0.5
 			 ? this.get("avatarSize") * 0.5 : val;
@@ -75,23 +78,36 @@ item.config.normalizer = {
 };
 
 item.vars = {
-	"r": 0, // circle radius
-	"d": 0, // circle diameter
 	"x": 0, // x coordinate of the circle center
 	"y": 0, // y coordinate of the circle center
-	"arcR": 0, // radius of the arc
-	"zeroAngle": 0 // angle to start indication
+	"diameter": 0,
+	"arc": {
+		"radius": 0,
+		"width": 0
+	},
+	"startAngle": 0,
+	"colors": {},
+	"clockwise": false
 };
 
 item.init = function() {
 	var self = this;
 
 	// calculate and store some values to prevent recalculating during the animation
-	var r = (this.config.get("avatarSize") + 2 * this.config.get("borderWidth")) * 0.5;
-	$.map(["r", "x", "y"], function(v) { self.set(v, r); });
-	this.set("d", r * 2);
-	this.set("arcR", this.r - this.config.get("borderWidth") * 0.5);
-	this.set("zeroAngle", this._toRadians(this.config.get("zeroAngle")));
+	var arcWidth = this.config.get("borderWidth");
+	var radius = (this.config.get("avatarSize") + 2 * arcWidth) * 0.5;
+	this.set("x", radius);
+	this.set("y", radius);
+	this.set("diameter", radius * 2);
+	this.set("arc.radius", radius - arcWidth * 0.5);
+	this.set("arc.width", arcWidth);
+	this.set("startAngle", this._toRadians(this.config.get("startAngle")));
+	this.set("colors", {
+		"background": this.config.get("backgroundColor"),
+		"foreground": this.config.get("foregroundColor"),
+		"flash": this.config.get("flashColor")
+	});
+	this.set("clockwise", this.config.get("clockwise"));
 
 	this.set("requestAnimationFrame", this._getRequestAnimationFrame());
 	this.render();
@@ -116,23 +132,22 @@ item.renderers.container = function(element) {
 item.renderers.value = function(element) {
 	var self = this;
 	$.map(["height", "width"], function(key) {
-		element.attr(key, self.d);
+		element.attr(key, self.diameter);
 	});
 	this.set("context", element.get(0).getContext("2d"));
 
 	var angle = this._toRadians(this._toAngle(this.get("data.previousWeight") || this.get("data.weight")));
-	this._drawArc(this.zeroAngle, angle, this.config.get("backgroundColor"), !this.config.get("clockwise"));
-	this._drawArc(this.zeroAngle, angle, this.config.get("foregroundColor"), this.config.get("clockwise"));
+	this._drawArc(this.startAngle, angle, this.colors["background"], !this.clockwise);
+	this._drawArc(this.startAngle, angle, this.colors["foreground"], this.clockwise);
 	this._animate();
 
 	return element;
 };
 
 item.renderers.avatar = function(element) {
-	var padding = this.config.get("borderWidth");
 	var size = this.config.get("avatarSize");
 	// TODO: get rid of this substitution
-	var avatars =  {
+	var avatars = {
 		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-chris-saad.jpg": "http://static.squarespace.com/static/52c5b81de4b0494603ede7e5/t/52cb35abe4b08720b0f45793/1389049259794/img-chris-saad.jpg",
 		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-kris-loux.jpg": "http://static.squarespace.com/static/52c5b81de4b0494603ede7e5/t/52c6510ee4b0438864636e19/1388728590845/img-kris-loux.jpg",
 		"http://aboutecho.com/Content/Images/AboutEcho/Management/img-philippe-cailloux.jpg": "https://pbs.twimg.com/profile_images/442034424352210944/l4gNFFG8_bigger.jpeg",
@@ -144,8 +159,8 @@ item.renderers.avatar = function(element) {
 		"avatar": avatars[this.get("data.avatar")] || this.get("data.avatar"),
 		"defaultAvatar": this.config.get("defaultAvatar")
 	}).css({
-		"top": padding,
-		"left": padding,
+		"top": this.arc["width"],
+		"left": this.arc["width"],
 		"width": size,
 		"height": size
 	});
@@ -166,47 +181,48 @@ item.methods._animate = function() {
 	if (weight === previousWeight || typeof previousWeight === "undefined") return;
 
 	var self = this, context = this.get("context");
-	var startAngle = this._toRadians(this._toAngle(previousWeight));
-	var endAngle = this._toRadians(this._toAngle(weight));
-	var stepAngle = (endAngle - startAngle) / this.config.get("animationSteps");
+	var angleFrom = this._toRadians(this._toAngle(previousWeight));
+	var angleTo = this._toRadians(this._toAngle(weight));
+	var step = (angleTo - angleFrom) / this.config.get("animationSteps");
 
 	var stop = function(angle) {
-		return stepAngle < 0 && angle < endAngle ||
-			stepAngle > 0 && angle > endAngle;
+		return step < 0 && angle < angleTo ||
+			step > 0 && angle > angleTo;
 	};
 
-	var angle = startAngle;
+	var angle = angleFrom;
 	(function animationLoop() {
-		context.clearRect(0, 0, self.d, self.d);
+		context.clearRect(0, 0, self.diameter, self.diameter);
 		if (stop(angle)) {
-			self._drawArc(self.zeroAngle, angle, self.config.get("foregroundColor"), self.config.get("clockwise"));
-			self._drawArc(self.zeroAngle, angle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
+			self._drawArc(self.startAngle, angle, self.colors["foreground"], self.clockwise);
+			self._drawArc(self.startAngle, angle, self.colors["background"], !self.clockwise);
 			return;
 		}
 
-		self._drawArc(self.zeroAngle, angle, self.config.get("flashColor"), self.config.get("clockwise"));
-		self._drawArc(self.zeroAngle, angle, self.config.get("backgroundColor"), !self.config.get("clockwise"));
+		self._drawArc(self.startAngle, angle, self.colors["flash"], self.clockwise);
+		self._drawArc(self.startAngle, angle, self.colors["background"], !self.clockwise);
 
-		angle += stepAngle;
+		angle += step;
 		self.requestAnimationFrame.call(window, animationLoop);
 	})();
 };
 
-item.methods._drawArc = function(startAngle, endAngle, color, clockwise) {
+item.methods._drawArc = function(angleFrom, angleTo, color, clockwise) {
 	var context = this.get("context");
 	context.beginPath();
-	context.arc(this.x, this.y, this.arcR, startAngle, endAngle, !clockwise);
+	context.arc(this.x, this.y, this.arc["radius"], angleFrom, angleTo, !clockwise);
 	context.strokeStyle = color;
-	context.lineWidth = this.config.get("borderWidth");
+	context.lineWidth = this.arc["width"];
 	context.stroke();
 	context.closePath();
 };
 
 item.methods._toAngle = function(weight) {
+	// convert percentage value into corresponding circle angle in degrees
 	var value = weight * 3.6;
 	return this.config.get("clockwise")
-		? value + this.config.get("zeroAngle")
-		: 360 + this.config.get("zeroAngle") - value;
+		? value + this.config.get("startAngle")
+		: 360 + this.config.get("startAngle") - value;
 };
 
 item.methods._toRadians = function(degrees) {
@@ -222,6 +238,8 @@ item.methods._getRequestAnimationFrame = function() {
 			window.setTimeout(callback, 1000 / self.config.get("fps"));
 		};
 };
+
+var isIE8 = document.all && document.querySelector && !document.addEventListener;
 
 item.methods._placeAvatar = function(args) {
 	args = args || {};
@@ -242,7 +260,6 @@ item.methods._placeAvatar = function(args) {
 	var keys = ["avatar", "defaultAvatar"];
 	element.css({"background-image": composeCSS(keys, "url('{data:value}')")});
 
-	var isIE8 = document.all && document.querySelector && !document.addEventListener;
 	if (isIE8) {
 		element.css({
 			"filter": composeCSS(keys.reverse(), "progid:DXImageTransform.Microsoft.AlphaImageLoader(src='{data:value}', sizingMethod='scale')")
