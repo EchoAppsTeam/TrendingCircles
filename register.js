@@ -50,7 +50,7 @@ StreamSentiment.VisualisationRegistry.registerCustom("circles", {
 			"default": 10,
 			"config": {
 				"title": "Border Width",
-				"desc": "Specifies the border width of the indication circle in pixels. The minimum value cannot be less than a half of the avatar size."
+				"desc": "Specifies the border width of the indication circle in pixels. The value cannot be more than a half of the avatar size."
 			}
 		}, {
 			"component": "Input",
