@@ -1,4 +1,4 @@
-StreamSentiment.VisualisationRegistry.registerCustom("circles", {
+StreamSentiment.VisualisationRegistry.register("circles", {
 	"script": "//cdn.echoenabled.com/apps/echo/trending-circles/v1.0/app.js",
 	"name": "Circles",
 	"clazz": "Echo.Apps.TrendingCircles",
