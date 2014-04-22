@@ -37,7 +37,7 @@ circles.renderers.header = function(element) {
 circles.methods.initItem = function(trend) {
 	return new Echo.Apps.TrendingCircles.Item($.extend({
 		"appkey": this.config.get('appkey'),
-		"target": ("<div>"),
+		"target": $("<div>"),
 		"data": trend,
 		"parent": this.config.getAsHash(),
 		"request": this.collectionView.request
